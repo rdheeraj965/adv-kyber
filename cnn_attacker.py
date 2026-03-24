@@ -44,7 +44,7 @@ class SCA_CNN(nn.Module):
         x = self.classifier(x)
         return x
 
-def train_and_evaluate(traces_path, labels_path, epochs=15):
+def train_and_evaluate(traces_path, labels_path, epochs):
     device = torch.device('cuda')
     
     # Load Data
@@ -68,6 +68,9 @@ def train_and_evaluate(traces_path, labels_path, epochs=15):
     
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Add the Learning Rate Scheduler
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
     
     # Mixed Precision Scaler
     scaler = torch.amp.GradScaler('cuda')
@@ -89,7 +92,11 @@ def train_and_evaluate(traces_path, labels_path, epochs=15):
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            
+
+        # Step the scheduler at the end of each epoch
+        scheduler.step()
+        print(f"Epoch {epoch+1}/{epochs} complete. Current LR: {scheduler.get_last_lr()[0]}")
+
     # Evaluation Phase
     model.eval()
     correct = 0

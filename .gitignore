@@ -3,7 +3,6 @@ baseline_traces.npy
 best_cnn_model.pth
 protected_labels.npy
 protected_traces.npy
-results.txt
 .venv
 agents.md
 prompt.txt
