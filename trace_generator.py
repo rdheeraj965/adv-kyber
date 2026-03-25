@@ -13,7 +13,13 @@ class TraceGenerator:
         self.operation_index = 500 
         
     def hamming_weight(self, value):
-        return bin(value).count('1')
+        # 3329 fits in 12 bits. We check each wire individually.
+        weight = 0.0
+        for i in range(12): 
+            if (value >> i) & 1:
+                # Each bit position (wire) draws slightly more power than the last
+                weight += 1.0 + (i * 0.5) 
+        return weight
     
     def generate_traces(self, use_defense=False, blend_weight=1.0):
         print(f"Generating {self.num_traces} traces. Defense Active: {use_defense}")
@@ -64,6 +70,10 @@ class TraceGenerator:
             
             traces[i] = trace
             
+        # Z-Score Normalization (Prevents Exploding Gradients & Dying ReLUs)
+        # Centers every trace around 0 with a Standard Deviation of 1
+        traces = (traces - np.mean(traces, axis=0, keepdims=True)) / (np.std(traces, axis=0, keepdims=True) + 1e-8)
+        
         # The labels for the CNN are the original classes (0 to 4)
         labels = s_classes
         
