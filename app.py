@@ -1,7 +1,7 @@
 """
-
+Streamlit Dashboard
 Mitigating Deep Learning Side-Channel Attacks on CRYSTALS-Kyber via In-Band Noise Injection
-
+RV College of Engineering | IS362IA
 """
 
 import streamlit as st
@@ -222,40 +222,84 @@ RC = {
 }
 
 def fig_oscilloscope(trace, secret_key, use_defense):
+    WIN_L  = OP_IDX - 40
+    WIN_R  = OP_IDX + 60
+    x_full = np.arange(TRACE_LEN)
+    x_win  = np.arange(WIN_L, WIN_R)
+    t_win  = trace[WIN_L:WIN_R]
+
+    mode_str = "Protected — In-Band Noise Active" if use_defense else "Baseline — Unprotected"
+    mode_col = "#2e7d52" if use_defense else "#d94f3d"
+
     with plt.rc_context(RC):
-        fig, (ax, ax2) = plt.subplots(
-            2, 1, figsize=(11, 5.5), facecolor="#ffffff",
-            gridspec_kw={"height_ratios": [3, 1], "hspace": 0.35}
+        fig = plt.figure(figsize=(11, 5.8), facecolor="#ffffff")
+        gs = fig.add_gridspec(2, 2, width_ratios=[3, 1],
+                              height_ratios=[3, 1], hspace=0.42, wspace=0.30)
+        ax_main  = fig.add_subplot(gs[0, 0])
+        ax_mini  = fig.add_subplot(gs[0, 1])
+        ax_power = fig.add_subplot(gs[1, 0])
+        ax_info  = fig.add_subplot(gs[1, 1])
+        ax_info.axis("off")
+
+        # Main: zoomed NTT window
+        ax_main.plot(x_win, t_win, color="#1c3f6e", linewidth=1.4, zorder=3)
+        ax_main.fill_between(x_win, t_win, 0, alpha=0.08, color="#1c3f6e", zorder=2)
+        ax_main.axvspan(OP_IDX - 1, OP_IDX + 3, color="#fef3c7", alpha=0.55,
+                        zorder=1, label="Multiplication cycles")
+        ax_main.axvline(OP_IDX, color="#d97706", linewidth=1.4,
+                        linestyle="--", zorder=4, label=f"Peak (t = {OP_IDX})")
+        ax_main.axhline(0, color="#e5e7eb", linewidth=0.8, zorder=0)
+        ax_main.set_xlim(WIN_L, WIN_R)
+        ax_main.set_xlabel("Clock Cycle", fontsize=9, color="#374151")
+        ax_main.set_ylabel("Normalised Power (σ)", fontsize=9, color="#374151")
+        ax_main.set_title(
+            f"NTT Multiplication Window  ·  s = {secret_key:+d}",
+            fontsize=10, fontweight="600", color="#111827", pad=10, loc="left"
         )
-        x = np.arange(TRACE_LEN)
+        ax_main.legend(fontsize=8, frameon=True, fancybox=False,
+                       edgecolor="#e2e6ea", loc="upper left")
+        ax_main.grid(True, zorder=0)
+        ax_main.text(0.99, 0.97, mode_str, transform=ax_main.transAxes,
+                     ha="right", va="top", fontsize=8, fontweight="600", color=mode_col,
+                     bbox=dict(boxstyle="round,pad=0.35", facecolor="#ffffff",
+                               edgecolor=mode_col, linewidth=1.2))
 
-        ax.plot(x, trace, color="#1c3f6e", linewidth=0.9, alpha=0.9, zorder=3)
-        ax.fill_between(x, trace, 0, alpha=0.06, color="#1c3f6e", zorder=2)
-        ax.axvspan(OP_IDX - 3, OP_IDX + 6, color="#fef3c7", alpha=0.6, zorder=1, label="NTT window")
-        ax.axvline(OP_IDX, color="#d97706", linewidth=1.2, linestyle="--", zorder=4,
-                   label=f"NTT multiply (t = {OP_IDX})")
-        ax.axhline(0, color="#e5e7eb", linewidth=0.7, zorder=0)
+        # Minimap: full trace for context
+        ax_mini.plot(x_full, trace, color="#94a3b8", linewidth=0.6, alpha=0.8)
+        ax_mini.axvspan(WIN_L, WIN_R, color="#1c3f6e", alpha=0.15, zorder=2)
+        ax_mini.axvline(OP_IDX, color="#d97706", linewidth=1, linestyle="--", zorder=3)
+        ax_mini.set_xlim(0, TRACE_LEN - 1)
+        ax_mini.set_title("Full Trace (context)", fontsize=8,
+                          fontweight="600", color="#6b7280", pad=6, loc="left")
+        ax_mini.set_xlabel("Clock Cycle", fontsize=7.5, color="#6b7280")
+        ax_mini.set_ylabel("Power (σ)", fontsize=7.5, color="#6b7280")
+        ax_mini.tick_params(labelsize=7)
+        ax_mini.grid(True)
 
-        mode_str = "Protected — In-Band Noise Active" if use_defense else "Baseline — Unprotected"
-        mode_col = "#2e7d52" if use_defense else "#d94f3d"
-        ax.set_title(f"Power Trace  ·  s = {secret_key:+d}  ·  {mode_str}",
-                     fontsize=10, fontweight="600", color="#111827", pad=10, loc="left")
-        ax.set_ylabel("Normalised Power (σ)", fontsize=9, color="#374151")
-        ax.legend(fontsize=8, frameon=True, fancybox=False, edgecolor="#e2e6ea", loc="upper left")
-        ax.grid(True, zorder=0)
-        ax.set_xlim(0, TRACE_LEN - 1)
-        ax.text(0.99, 0.97, mode_str, transform=ax.transAxes, ha="right", va="top",
-                fontsize=8, fontweight="600", color=mode_col,
-                bbox=dict(boxstyle="round,pad=0.3", facecolor="#ffffff",
-                          edgecolor=mode_col, linewidth=1))
+        # Absolute power strip (zoomed window)
+        ax_power.fill_between(x_win, np.abs(t_win), color="#93c5fd", alpha=0.7)
+        ax_power.plot(x_win, np.abs(t_win), color="#3b82f6", linewidth=0.9, alpha=0.9)
+        ax_power.axvline(OP_IDX, color="#d97706", linewidth=1.2, linestyle="--")
+        ax_power.set_xlim(WIN_L, WIN_R)
+        ax_power.set_ylabel("|Power|", fontsize=8, color="#374151")
+        ax_power.set_xlabel("Clock Cycle", fontsize=9, color="#374151")
+        ax_power.grid(True)
 
-        ax2.fill_between(x, np.abs(trace), color="#93c5fd", alpha=0.7)
-        ax2.plot(x, np.abs(trace), color="#3b82f6", linewidth=0.7, alpha=0.9)
-        ax2.axvline(OP_IDX, color="#d97706", linewidth=1.2, linestyle="--")
-        ax2.set_ylabel("|Power|", fontsize=8, color="#374151")
-        ax2.set_xlabel("Clock Cycle", fontsize=9, color="#374151")
-        ax2.grid(True)
-        ax2.set_xlim(0, TRACE_LEN - 1)
+        # Info panel
+        info_lines = [
+            ("Peak power",  f"{trace[OP_IDX]:+.3f} σ"),
+            ("Clock cycle", f"t = {OP_IDX}"),
+            ("Window",      f"t = {WIN_L} to {WIN_R}"),
+            ("Mode",        "Protected" if use_defense else "Baseline"),
+        ]
+        for i, (label, val) in enumerate(info_lines):
+            ax_info.text(0.05, 0.85 - i * 0.22, label,
+                         transform=ax_info.transAxes,
+                         fontsize=8, color="#6b7280", va="top")
+            ax_info.text(0.05, 0.75 - i * 0.22, val,
+                         transform=ax_info.transAxes,
+                         fontsize=9, fontweight="600", color="#111827", va="top",
+                         fontfamily="monospace")
 
         fig.tight_layout(pad=1.5)
         return fig
