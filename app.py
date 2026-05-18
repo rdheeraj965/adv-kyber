@@ -168,6 +168,8 @@ TRACE_LEN     = 1000
 CBD_TO_CLASS  = {-2: 4, -1: 3, 0: 0, 1: 1, 2: 2}
 CLASS_TO_CBD  = {0: 0, 1: 1, 2: 2, 3: -1, 4: -2}
 CLASS_TO_ZVAL = {0: 0, 1: 1, 2: 2, 3: 3328, 4: 3327}
+BASELINE_ACC = 97.3
+PROTECTED_ACC = 20.1
 
 # ── Core helpers ─────────────────────────────────────────────────────────────
 def hamming_weight(value: int) -> float:
@@ -394,16 +396,11 @@ with st.sidebar:
     jitter_max  = st.slider("Temporal Jitter (± cycles)", 0, 10, 2)
 
     st.markdown("---")
-    st.markdown('<div class="section-heading">Pipeline Results</div>', unsafe_allow_html=True)
-    c1, c2 = st.columns(2)
-    with c1:
-        baseline_acc  = st.number_input("Baseline Acc (%)",  0.0, 100.0, 97.3, 0.1)
-    with c2:
-        protected_acc = st.number_input("Protected Acc (%)", 0.0, 100.0, 20.1, 0.1)
-
-    st.markdown("---")
     seed_val    = st.number_input("Random Seed", 0, 9999, 42, 1)
     simulate_btn = st.button("Run Simulation")
+
+baseline_acc = BASELINE_ACC
+protected_acc = PROTECTED_ACC
 
 # ── Generate / cache trace ───────────────────────────────────────────────────
 state_key = (secret_key, use_defense, noise_sigma, jitter_max, seed_val)
